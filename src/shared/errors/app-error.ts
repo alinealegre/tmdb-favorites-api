@@ -29,3 +29,14 @@ export class ValidationError extends AppError {
     this.name = "ValidationError";
   }
 }
+
+export class ExternalServiceError extends AppError {
+  constructor(
+    statusCode: number,
+    message: string,
+    code = "EXTERNAL_SERVICE_ERROR",
+  ) {
+    super(statusCode, code, message);
+    this.name = "ExternalServiceError";
+  }
+}

@@ -40,6 +40,36 @@ npm run db:migrate
 npm run dev
 ```
 
+## Environment Variables
+
+Create a `.env` file based on `.env.example` and provide your own TMDB API key.
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `PORT` | API port (default: `3000`) |
+| `NODE_ENV` | Environment (`development`, `production`) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `TMDB_API_KEY` | Your TMDB API key — get one at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| `TMDB_BASE_URL` | TMDB API base URL (`https://api.themoviedb.org/3`) |
+
+Example `.env` (use your own values):
+
+```env
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/movies_db?schema=public
+REDIS_URL=redis://localhost:6379
+TMDB_API_KEY=your_tmdb_api_key
+TMDB_BASE_URL=https://api.themoviedb.org/3
+```
+
+Never commit the `.env` file. Credentials stay local only.
+
 ## Health check
 
 ```bash
@@ -57,6 +87,18 @@ Expected response:
     "redis": "not_configured"
   }
 }
+```
+
+## Movie search
+
+```bash
+curl "http://localhost:3000/movies/search?q=matrix"
+```
+
+Optional pagination:
+
+```bash
+curl "http://localhost:3000/movies/search?q=matrix&page=1"
 ```
 
 ## Scripts
@@ -98,8 +140,8 @@ stable and reproducible without sacrificing a production-ready stack.
 ## Roadmap
 
 - [x] Project setup
-- [ ] TMDB integration
-- [ ] Movie search
+- [x] TMDB integration
+- [x] Movie search
 - [ ] Favorites (add / remove / list)
 - [ ] Watched status
 - [ ] Rating
