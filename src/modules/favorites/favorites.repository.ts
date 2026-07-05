@@ -58,3 +58,45 @@ export async function deleteFavoriteByTmdbId(tmdbId: number): Promise<boolean> {
     throw error;
   }
 }
+
+export async function updateFavoriteWatchedAt(
+  tmdbId: number,
+  watchedAt: Date,
+): Promise<Favorite | null> {
+  try {
+    return await prisma.favorite.update({
+      where: { tmdbId },
+      data: { watchedAt },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function updateFavoriteRating(
+  tmdbId: number,
+  rating: number,
+): Promise<Favorite | null> {
+  try {
+    return await prisma.favorite.update({
+      where: { tmdbId },
+      data: { rating },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}

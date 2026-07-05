@@ -3,6 +3,7 @@ import { ValidationError } from "../../shared/errors/app-error";
 import {
   addFavoriteBodySchema,
   formatZodError,
+  rateFavoriteBodySchema,
   tmdbIdParamSchema,
 } from "./favorites.dto";
 import * as favoritesService from "./favorites.service";
@@ -56,6 +57,57 @@ export async function listFavorites(
     const result = await favoritesService.listFavorites();
 
     res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function markAsWatched(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const parsedParams = tmdbIdParamSchema.safeParse(req.params);
+
+    if (!parsedParams.success) {
+      throw new ValidationError(formatZodError(parsedParams.error));
+    }
+
+    const favorite = await favoritesService.markAsWatched(
+      parsedParams.data.tmdbId,
+    );
+
+    res.status(200).json(favorite);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rateFavorite(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const parsedParams = tmdbIdParamSchema.safeParse(req.params);
+
+    if (!parsedParams.success) {
+      throw new ValidationError(formatZodError(parsedParams.error));
+    }
+
+    const parsedBody = rateFavoriteBodySchema.safeParse(req.body);
+
+    if (!parsedBody.success) {
+      throw new ValidationError(formatZodError(parsedBody.error));
+    }
+
+    const favorite = await favoritesService.rateFavorite(
+      parsedParams.data.tmdbId,
+      parsedBody.data.rating,
+    );
+
+    res.status(200).json(favorite);
   } catch (error) {
     next(error);
   }

@@ -127,6 +127,23 @@ Remove a favorite:
 curl -X DELETE http://localhost:3000/favorites/603
 ```
 
+Mark as watched:
+
+```bash
+curl -X PATCH http://localhost:3000/favorites/603/watched
+```
+
+Calling the watched endpoint more than once updates the `watchedAt` timestamp,
+keeping the operation idempotent from the client perspective.
+
+Rate a watched movie:
+
+```bash
+curl -X PATCH http://localhost:3000/favorites/603/rating \
+  -H "Content-Type: application/json" \
+  -d '{"rating": 9.5}'
+```
+
 ## Scripts
 
 | Command | Description |
@@ -169,8 +186,8 @@ stable and reproducible without sacrificing a production-ready stack.
 - [x] TMDB integration
 - [x] Movie search
 - [x] Favorites (add / remove / list)
-- [ ] Watched status
-- [ ] Rating
+- [x] Watched status
+- [x] Rating
 - [ ] Swagger documentation
 - [ ] Unit tests (business rules)
 - [ ] Redis cache + retry + structured logs

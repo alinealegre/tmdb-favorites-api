@@ -2,7 +2,11 @@ import { Favorite } from "@prisma/client";
 import { MovieSummaryDto } from "../tmdb/tmdb.mapper";
 import { getMovieDetails } from "../tmdb/tmdb.service";
 import { isTmdbServiceUnavailable } from "../tmdb/tmdb.client";
-import { ConflictError, NotFoundError } from "../../shared/errors/app-error";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "../../shared/errors/app-error";
 import * as favoritesRepository from "./favorites.repository";
 
 export interface FavoriteResponse {
@@ -138,4 +142,43 @@ export async function listFavorites(): Promise<ListFavoritesResult> {
   }
 
   return { data, degraded: false };
+}
+
+export async function markAsWatched(tmdbId: number): Promise<FavoriteResponse> {
+  const favorite = await favoritesRepository.updateFavoriteWatchedAt(
+    tmdbId,
+    new Date(),
+  );
+
+  if (!favorite) {
+    throw new NotFoundError("Favorite not found");
+  }
+
+  return mapFavoriteToResponse(favorite);
+}
+
+export async function rateFavorite(
+  tmdbId: number,
+  rating: number,
+): Promise<FavoriteResponse> {
+  const favorite = await favoritesRepository.findFavoriteByTmdbId(tmdbId);
+
+  if (!favorite) {
+    throw new NotFoundError("Favorite not found");
+  }
+
+  if (!favorite.watchedAt) {
+    throw new ValidationError("Movie must be marked as watched before rating");
+  }
+
+  const updated = await favoritesRepository.updateFavoriteRating(
+    tmdbId,
+    rating,
+  );
+
+  if (!updated) {
+    throw new NotFoundError("Favorite not found");
+  }
+
+  return mapFavoriteToResponse(updated);
 }
