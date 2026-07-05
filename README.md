@@ -14,6 +14,7 @@ Built with Node.js and TypeScript.
 - Axios
 - Zod
 - Redis
+- Pino
 - Swagger (OpenAPI)
 - Jest
 - ESLint + Prettier
@@ -96,7 +97,7 @@ Expected response:
   "timestamp": "2026-07-04T12:00:00.000Z",
   "services": {
     "database": "connected",
-    "redis": "not_configured"
+    "redis": "connected"
   }
 }
 ```
@@ -184,17 +185,35 @@ controller → service → repository
 | `movies` | Movie search orchestration |
 | `favorites` | Favorites CRUD and business rules |
 | `tmdb` | TMDB HTTP client, mapping and error handling |
-| `cache` | Redis cache (planned) |
+| `cache` | Redis cache for TMDB responses |
+| `health` | Service health checks |
+
+### Project structure
+
+```
+src/
+  modules/
+    movies/
+    favorites/
+    tmdb/
+    cache/
+    health/
+  shared/
+  database/
+  docs/
+```
 
 ### Request flow
 
 ```mermaid
-flowchart LR
+flowchart TB
   Client --> Controller
   Controller --> Service
   Service --> Repository
-  Service --> TmdbClient
+  Service --> TmdbService["TMDB Service"]
   Repository --> PostgreSQL
+  TmdbService --> Redis
+  TmdbService --> TmdbClient["TMDB Client"]
   TmdbClient --> TMDB
 ```
 
@@ -219,6 +238,26 @@ This project uses **Prisma 6.x** intentionally. Prisma 7 changed datasource
 configuration in a breaking way; for this time-boxed challenge, v6 keeps setup
 stable and reproducible without sacrificing a production-ready stack.
 
+### Cache
+
+Cache is implemented at the TMDB service layer so all consumers (movie search,
+favorite creation and favorite enrichment) benefit from the same caching strategy
+without duplicating logic. Redis follows a fail-open strategy: cache improves
+performance but is never a critical dependency.
+
+### Retry
+
+Retry is applied only to transient failures (timeouts, network errors and HTTP
+5xx). Client errors (4xx) are not retried because they are not expected to
+succeed on subsequent attempts.
+
+### Structured logging
+
+Structured logging with Pino was chosen to make production troubleshooting
+easier while keeping console output readable during development. Log levels
+separate routine operations from recoverable incidents (for example, cache
+activity at debug, TMDB retries and degraded responses at warn).
+
 ### Degraded response
 
 The `degraded` flag indicates TMDB **service availability** during the request,
@@ -241,6 +280,8 @@ which is the scenario described in the challenge requirements.
 
 - Single-user API (no authentication)
 - Business identifier in routes: `tmdbId`
+- TMDB is treated as the source of truth for movie metadata; local snapshots
+  support persistence and degraded responses
 
 ## Roadmap
 
@@ -252,5 +293,5 @@ which is the scenario described in the challenge requirements.
 - [x] Rating
 - [x] Swagger documentation
 - [x] Unit tests (business rules)
-- [ ] Redis cache + retry + structured logs
+- [x] Redis cache + retry + structured logs
 - [ ] Integration tests + CI

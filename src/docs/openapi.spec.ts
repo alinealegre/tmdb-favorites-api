@@ -46,7 +46,8 @@ export const openApiSpec = {
       get: {
         tags: ["Movies"],
         summary: "Search movies",
-        description: "Proxy search to TMDB. Returns a simplified list of movies.",
+        description:
+          "Proxy search to TMDB. Returns a simplified list of movies.",
         parameters: [
           {
             name: "q",
@@ -344,7 +345,10 @@ export const openApiSpec = {
                 type: "string",
                 enum: ["connected", "disconnected"],
               },
-              redis: { type: "string" },
+              redis: {
+                type: "string",
+                enum: ["connected", "disconnected", "not_configured"],
+              },
             },
           },
         },

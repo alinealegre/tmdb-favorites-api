@@ -4,6 +4,7 @@ import {
   ExternalServiceError,
   NotFoundError,
 } from "../../shared/errors/app-error";
+import { logger } from "../../shared/logger";
 import {
   TmdbMovieDetailsResponse,
   TmdbSearchMoviesResponse,
@@ -18,6 +19,12 @@ const tmdbHttpClient = axios.create({
     language: "en-US",
   },
 });
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function ensureApiKeyConfigured(): void {
   if (!config.tmdb.apiKey) {
@@ -77,6 +84,55 @@ function isTimeoutError(error: AxiosError): boolean {
   );
 }
 
+function isRetryableTmdbError(error: unknown): boolean {
+  if (!isAxiosError(error)) {
+    return false;
+  }
+
+  if (isTimeoutError(error)) {
+    return true;
+  }
+
+  if (!error.response) {
+    return true;
+  }
+
+  return error.response.status >= 500;
+}
+
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  context: { operation: string },
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= config.tmdb.maxRetryAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (
+        !isRetryableTmdbError(error) ||
+        attempt === config.tmdb.maxRetryAttempts
+      ) {
+        throw error;
+      }
+
+      const delayMs = config.tmdb.retryBaseDelayMs * 2 ** (attempt - 1);
+
+      logger.warn(
+        { attempt, delayMs, operation: context.operation },
+        "TMDB request retry",
+      );
+
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError;
+}
+
 export function isTmdbServiceUnavailable(error: unknown): boolean {
   return (
     error instanceof ExternalServiceError &&
@@ -99,18 +155,23 @@ export async function searchMoviesOnTmdb(
   ensureApiKeyConfigured();
 
   try {
-    const { data } = await tmdbHttpClient.get<TmdbSearchMoviesResponse>(
-      "/search/movie",
-      {
-        params: {
-          api_key: config.tmdb.apiKey,
-          query,
-          page,
-        },
-      },
-    );
+    return await withRetry(
+      async () => {
+        const { data } = await tmdbHttpClient.get<TmdbSearchMoviesResponse>(
+          "/search/movie",
+          {
+            params: {
+              api_key: config.tmdb.apiKey,
+              query,
+              page,
+            },
+          },
+        );
 
-    return data;
+        return data;
+      },
+      { operation: "searchMovies" },
+    );
   } catch (error) {
     handleTmdbClientError(error);
   }
@@ -122,16 +183,21 @@ export async function getMovieDetailsFromTmdb(
   ensureApiKeyConfigured();
 
   try {
-    const { data } = await tmdbHttpClient.get<TmdbMovieDetailsResponse>(
-      `/movie/${tmdbId}`,
-      {
-        params: {
-          api_key: config.tmdb.apiKey,
-        },
-      },
-    );
+    return await withRetry(
+      async () => {
+        const { data } = await tmdbHttpClient.get<TmdbMovieDetailsResponse>(
+          `/movie/${tmdbId}`,
+          {
+            params: {
+              api_key: config.tmdb.apiKey,
+            },
+          },
+        );
 
-    return data;
+        return data;
+      },
+      { operation: "getMovieDetails" },
+    );
   } catch (error) {
     handleMovieNotFound(error);
     handleTmdbClientError(error);

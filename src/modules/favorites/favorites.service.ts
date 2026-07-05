@@ -7,6 +7,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../shared/errors/app-error";
+import { logger } from "../../shared/logger";
 import * as favoritesRepository from "./favorites.repository";
 
 export interface FavoriteResponse {
@@ -128,6 +129,11 @@ export async function listFavorites(): Promise<ListFavoritesResult> {
         ) {
           data.push(mapFavoriteToListItem(favorites[nextIndex], false));
         }
+
+        logger.warn(
+          { tmdbId: favorite.tmdbId, remaining: favorites.length - index - 1 },
+          "Favorites list degraded due to TMDB unavailability",
+        );
 
         return { data, degraded: true };
       }
