@@ -1,4 +1,5 @@
 import express from "express";
+import { setupSwagger } from "./docs/swagger";
 import { errorHandler } from "./shared/middlewares/error-handler";
 import { favoritesRouter } from "./modules/favorites/favorites.routes";
 import { healthRouter } from "./modules/health/health.routes";
@@ -7,6 +8,8 @@ import { moviesRouter } from "./modules/movies/movies.routes";
 const app = express();
 
 app.use(express.json());
+
+setupSwagger(app);
 
 app.use("/health", healthRouter);
 app.use("/movies", moviesRouter);

@@ -11,6 +11,7 @@ Built with Node.js and TypeScript.
 - Prisma
 - Redis
 - Docker Compose
+- Swagger (OpenAPI)
 - Jest
 - ESLint + Prettier
 
@@ -39,6 +40,13 @@ npm run db:migrate
 # 5. Start the API in development mode
 npm run dev
 ```
+
+## API documentation
+
+With the API running:
+
+- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+- OpenAPI JSON: [http://localhost:3000/docs.json](http://localhost:3000/docs.json)
 
 ## Environment Variables
 
@@ -159,15 +167,49 @@ curl -X PATCH http://localhost:3000/favorites/603/rating \
 
 ## Architecture
 
+The project follows a modular layered architecture:
+
 ```
 controller → service → repository
 ```
 
-Modules: `movies`, `favorites`, `tmdb`, `cache`.
+### Modules
 
-Detailed architecture documentation will be added as the project evolves.
+| Module | Responsibility |
+|---|---|
+| `movies` | Movie search orchestration |
+| `favorites` | Favorites CRUD and business rules |
+| `tmdb` | TMDB HTTP client, mapping and error handling |
+| `cache` | Redis cache (planned) |
+
+### Request flow
+
+```mermaid
+flowchart LR
+  Client --> Controller
+  Controller --> Service
+  Service --> Repository
+  Service --> TmdbClient
+  Repository --> PostgreSQL
+  TmdbClient --> TMDB
+```
+
+### Degraded favorites listing
+
+When listing favorites, the API tries to enrich each item from TMDB.
+If TMDB is unavailable (timeout, network error, 503), the API returns local
+snapshots with `degraded: true` and `enriched: false` for all items.
+If only a specific movie fails (for example, 404), only that item is returned
+with `enriched: false`.
 
 ## Technical decisions
+
+### Stack
+
+- **Express + TypeScript** for a simple and familiar HTTP layer
+- **PostgreSQL + Prisma** for relational data and constraints (`tmdbId` unique)
+- **Axios + Zod** for TMDB integration and request validation
+- **Swagger UI** for API documentation
 
 ### Prisma version
 
@@ -188,7 +230,7 @@ stable and reproducible without sacrificing a production-ready stack.
 - [x] Favorites (add / remove / list)
 - [x] Watched status
 - [x] Rating
-- [ ] Swagger documentation
+- [x] Swagger documentation
 - [ ] Unit tests (business rules)
 - [ ] Redis cache + retry + structured logs
 - [ ] Integration tests + CI
