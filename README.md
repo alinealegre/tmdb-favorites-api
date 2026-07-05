@@ -6,14 +6,18 @@ Built with Node.js and TypeScript.
 
 ## Technologies
 
+- Node.js
+- TypeScript
 - Express
 - PostgreSQL
 - Prisma
+- Axios
+- Zod
 - Redis
-- Docker Compose
 - Swagger (OpenAPI)
 - Jest
 - ESLint + Prettier
+- Docker Compose
 
 ## Prerequisites
 
@@ -196,11 +200,9 @@ flowchart LR
 
 ### Degraded favorites listing
 
-When listing favorites, the API tries to enrich each item from TMDB.
-If TMDB is unavailable (timeout, network error, 503), the API returns local
-snapshots with `degraded: true` and `enriched: false` for all items.
-If only a specific movie fails (for example, 404), only that item is returned
-with `enriched: false`.
+When listing favorites, the API tries to enrich each item from TMDB. See
+[Degraded response](#degraded-response) below for the full semantics of
+`degraded` and `enriched`.
 
 ## Technical decisions
 
@@ -217,6 +219,24 @@ This project uses **Prisma 6.x** intentionally. Prisma 7 changed datasource
 configuration in a breaking way; for this time-boxed challenge, v6 keeps setup
 stable and reproducible without sacrificing a production-ready stack.
 
+### Degraded response
+
+The `degraded` flag indicates TMDB **service availability** during the request,
+while `enriched` indicates whether each individual favorite was enriched with
+fresh TMDB data or returned from the local snapshot.
+
+| Scenario | `degraded` | `enriched` |
+|---|---|---|
+| TMDB responded normally | `false` | `true` |
+| Single movie returned 404 | `false` | `false` (that item only) |
+| TMDB timeout | `true` | `false` |
+| TMDB 503 | `true` | `false` |
+| Network error | `true` | `false` |
+
+A 404 is not a service failure — TMDB responded correctly that the resource
+does not exist. Timeout, 503, and network errors represent unavailability,
+which is the scenario described in the challenge requirements.
+
 ## Assumptions
 
 - Single-user API (no authentication)
@@ -231,6 +251,6 @@ stable and reproducible without sacrificing a production-ready stack.
 - [x] Watched status
 - [x] Rating
 - [x] Swagger documentation
-- [ ] Unit tests (business rules)
+- [x] Unit tests (business rules)
 - [ ] Redis cache + retry + structured logs
 - [ ] Integration tests + CI
