@@ -101,6 +101,32 @@ Optional pagination:
 curl "http://localhost:3000/movies/search?q=matrix&page=1"
 ```
 
+## Favorites
+
+Add a favorite (snapshot is saved locally from TMDB):
+
+```bash
+curl -X POST http://localhost:3000/favorites \
+  -H "Content-Type: application/json" \
+  -d '{"tmdbId": 603}'
+```
+
+List favorites (enriched from TMDB when available):
+
+```bash
+curl http://localhost:3000/favorites
+```
+
+When TMDB is unavailable, the API returns local snapshots with `"degraded": true`.
+When only a specific movie cannot be enriched (for example, 404 on TMDB), that item
+is returned with `"enriched": false` while the rest of the list may still be enriched.
+
+Remove a favorite:
+
+```bash
+curl -X DELETE http://localhost:3000/favorites/603
+```
+
 ## Scripts
 
 | Command | Description |
@@ -142,7 +168,7 @@ stable and reproducible without sacrificing a production-ready stack.
 - [x] Project setup
 - [x] TMDB integration
 - [x] Movie search
-- [ ] Favorites (add / remove / list)
+- [x] Favorites (add / remove / list)
 - [ ] Watched status
 - [ ] Rating
 - [ ] Swagger documentation

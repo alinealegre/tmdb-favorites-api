@@ -1,6 +1,9 @@
 import axios, { AxiosError, isAxiosError } from "axios";
 import { config } from "../../config/env";
-import { ExternalServiceError } from "../../shared/errors/app-error";
+import {
+  ExternalServiceError,
+  NotFoundError,
+} from "../../shared/errors/app-error";
 import {
   TmdbMovieDetailsResponse,
   TmdbSearchMoviesResponse,
@@ -74,6 +77,21 @@ function isTimeoutError(error: AxiosError): boolean {
   );
 }
 
+export function isTmdbServiceUnavailable(error: unknown): boolean {
+  return (
+    error instanceof ExternalServiceError &&
+    (error.code === "TMDB_TIMEOUT" ||
+      error.code === "TMDB_UNAVAILABLE" ||
+      error.code === "TMDB_NOT_CONFIGURED")
+  );
+}
+
+function handleMovieNotFound(error: unknown): void {
+  if (isAxiosError(error) && error.response?.status === 404) {
+    throw new NotFoundError("Movie not found on TMDB");
+  }
+}
+
 export async function searchMoviesOnTmdb(
   query: string,
   page: number,
@@ -115,6 +133,7 @@ export async function getMovieDetailsFromTmdb(
 
     return data;
   } catch (error) {
+    handleMovieNotFound(error);
     handleTmdbClientError(error);
   }
 }
