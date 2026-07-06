@@ -34,6 +34,7 @@ npm install
 
 # 2. Configure environment variables
 cp .env.example .env
+# Edit TMDB_API_KEY in .env — other values match docker-compose.yml
 
 # 3. Start PostgreSQL and Redis
 docker compose up -d
@@ -46,6 +47,22 @@ npm run db:migrate
 npm run dev
 ```
 
+## Running tests
+
+Integration tests require PostgreSQL running locally. TMDB is mocked — a valid API key is not required for `npm test`.
+
+```bash
+docker compose up -d postgres
+npm test
+```
+
+> If you already started all services with `docker compose up -d` in [Running locally](#running-locally), no additional setup is required.
+
+The test suite includes:
+
+- Unit tests for business rules
+- Integration tests using Supertest and PostgreSQL
+
 ## API documentation
 
 With the API running:
@@ -55,7 +72,9 @@ With the API running:
 
 ## Environment Variables
 
-Create a `.env` file based on `.env.example` and provide your own TMDB API key.
+Create a `.env` file based on `.env.example` and set your TMDB API key. The example file already includes `DATABASE_URL` and `REDIS_URL` aligned with Docker Compose.
+
+`REDIS_URL` is optional — without it, the API runs without cache (fail-open).
 
 ```bash
 cp .env.example .env
@@ -229,7 +248,9 @@ When listing favorites, the API tries to enrich each item from TMDB. See
 
 - **Express + TypeScript** for a simple and familiar HTTP layer
 - **PostgreSQL + Prisma** for relational data and constraints (`tmdbId` unique)
+- **Redis** for TMDB response caching with TTL
 - **Axios + Zod** for TMDB integration and request validation
+- **Pino** for structured logging
 - **Swagger UI** for API documentation
 
 ### Prisma version
@@ -294,4 +315,13 @@ which is the scenario described in the challenge requirements.
 - [x] Swagger documentation
 - [x] Unit tests (business rules)
 - [x] Redis cache + retry + structured logs
-- [ ] Integration tests + CI
+- [x] Integration tests + CI
+
+## Future improvements
+
+Given more time, I would consider:
+
+- Circuit breaker for TMDB integration
+- Rate limiting for external API requests
+- Additional integration tests covering degraded responses
+- Basic metrics for monitoring
